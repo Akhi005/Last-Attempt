@@ -5,14 +5,12 @@ require('dotenv').config();
 const { GoogleGenerativeAI } = require('@google/generative-ai');  
 const app = express();
 app.use(cors());
-app.use(bodyParser.json()); 
-app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.json());
 const PORT = 4000;
 
 // YouTube API Function
 async function getYoutube(topic) {
-    const apikey = process.env.YOUTUBE_API_KEY; // Store your API key in an environment variable
+    const apikey = process.env.YOUTUBE_API_KEY;
     const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${topic}&type=video&key=${apikey}`;
     const response = await axios.get(url);
     return response.data.items;

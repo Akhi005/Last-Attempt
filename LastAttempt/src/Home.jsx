@@ -32,7 +32,7 @@ const Home = () => {
         try {
             const content = await fetchArticleFromFirebase(topic, articleTitle, contentOwner);
             if (content) {
-                const response = await axios.post(`http://localhost:4000/generate-questions`, { content });
+                const response = await axios.post(`https://last-attempt-backend.vercel.app/generate-questions`, { content });
                 const questions = response.data.questions;
                 const questionArray = questions.split('\n');
                 console.log(articleTitle,questionArray);
@@ -47,7 +47,7 @@ const Home = () => {
     };
     const fetchContent = async () => {
         try {
-            const res = await axios.get('http://localhost:4000/fetch-content', { params: { topic } });
+            const res = await axios.get('https://last-attempt-backend.vercel.app/fetch-content', { params: { topic } });
             setSyllabus(res.data);
         } catch (error) {
             console.log("Failed to fetch data:", error);
