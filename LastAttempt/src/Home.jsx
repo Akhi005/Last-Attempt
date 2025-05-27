@@ -9,45 +9,59 @@ const Home = () => {
     const [syllabus, setSyllabus] = useState(null);
     const [topic, setTopic] = useState('');
     const navigate = useNavigate();
-    const fetchArticleFromFirebase = async (topic, articleTitle, contentOwner) => {
-        try {
-            const docRef = doc(db, "articles", topic);
-            const docSnap = await getDoc(docRef);
-            if (docSnap.exists()) {
-                const content = docSnap.data().content;
-                const result = contentOwner === "wikipedia" ? syllabus.wikipediaContent : syllabus.MDNContent;
-                console.log(content);
-                const matchedArticle = result.find(item => item.title === articleTitle);
-                return matchedArticle || null;
-            } else {
-                console.log("No such document!");
-                return null;
-            }
-        } catch (error) {
-            console.error("Error fetching article from Firebase:", error);
+  const fetchArticleFromFirebase = async (topic, articleTitle, contentOwner) => {
+    try {
+        const docRef = doc(db, "articles", topic);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            const content = docSnap.data().content; // This contains { wikipediaContent, MDNContent, youtubeContent }
+            const result = content[`${contentOwner}Content`]; // Dynamically access the correct content
+            const matchedArticle = result.find(item => item.title === articleTitle);
+            return matchedArticle || null;
+        } else {
+            console.log("No such document!");
             return null;
         }
-    };
+    } catch (error) {
+        console.error("Error fetching article from Firebase:", error);
+        return null;
+    }
+};
     const handleTest = async (articleTitle, contentOwner) => {
-        try {
-            const content = await fetchArticleFromFirebase(topic, articleTitle, contentOwner);
-            if (content) {
-                const response = await axios.post(`https://last-attempt-backend.vercel.app/generate-questions`, { content });
-                const questions = response.data.questions;
-                const questionArray = questions.split('\n');
-                console.log(articleTitle,questionArray);
-                navigate('/questions', { state: { questions: questionArray, title: articleTitle } });
+    try {
+        const content = await fetchArticleFromFirebase(topic, articleTitle, contentOwner);
+        if (content) {
+            // Extract actual text content based on source
+            let contentText;
+            if (contentOwner === "wikipedia") {
+                contentText = content.content; // Wikipedia article text
+            } else if (contentOwner === "MDN") {
+                contentText = content.summary; // MDN article summary
             }
-            else {
-                console.log(`No content found for ${articleTitle}`);
-            }
-        } catch (error) {
-            console.error("Error fetching article content or generating questions:", error);
+
+            const response = await axios.post(`http://localhost:4000/generate-questions`, { 
+                content: contentText 
+            });
+            
+            // Process questions
+            const rawQuestions = response.data.questions;
+            const questionArray = rawQuestions.split('\n').filter(q => q.trim() !== '');
+            
+            navigate('/questions', { 
+                state: { 
+                    questions: questionArray, 
+                    title: articleTitle 
+                } 
+            });
         }
-    };
+    } catch (error) {
+        console.error("Error generating questions:", error);
+        alert("Failed to generate questions. Please try again.");
+    }
+};
     const fetchContent = async () => {
         try {
-            const res = await axios.get('https://last-attempt-backend.vercel.app/fetch-content', { params: { topic } });
+            const res = await axios.get('http://localhost:4000/fetch-content', { params: { topic } });
             setSyllabus(res.data);
         } catch (error) {
             console.log("Failed to fetch data:", error);
@@ -67,7 +81,7 @@ const Home = () => {
             <input
                 className=" border-2 bg-slate-200 p-2 ml-96 w-[400px]"
                 type="text"
-                placeholder="Enter a topic (e.g., JavaScript Basics)"
+                placeholder="Enter a topic (e.g., COVID-19)"
                 onChange={(e) => setTopic(e.target.value)}
             />
             <button className="bg-blue-500 p-2 text-white rounded-lg" onClick={fetchContent}>Search</button>
