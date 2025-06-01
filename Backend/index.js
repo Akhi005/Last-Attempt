@@ -8,14 +8,13 @@ app.use(cors())
 app.use(express.json())
 const PORT = 4000
 
-// YouTube API Function
 async function getYoutube(topic) {
   const apikey = process.env.YOUTUBE_API_KEY
   const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${topic}&type=video&key=${apikey}`
   const response = await axios.get(url)
   return response.data.items
 }
-// Wikipedia API Function
+
 async function getWikipedia(topic) {
   const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(
     topic
@@ -71,17 +70,13 @@ app.get('/fetch-content', async (req, res) => {
     const wikipediaContent = await getWikipedia(topic)
     const youtubeContent = await getYoutube(topic)
     const MDNContent = await getMDNContent(topic)
-
-    // Store each content source in Firebase
     await storeArticleInFirebase(topic, { wikipediaContent, youtubeContent, MDNContent })
-
     res.json({ topic, wikipediaContent, youtubeContent, MDNContent })
   } catch (error) {
     console.error('Error while fetching content:', error)
     res.status(500).json({ error: 'Failed to fetch content' })
   }
 })
-// Import Firebase Admin SDK to the backend
 var admin = require('firebase-admin')
 
 admin.initializeApp({
@@ -103,11 +98,10 @@ admin.initializeApp({
 const db = admin.firestore()
 async function storeArticleInFirebase(articleTitle, content) {
     try {
-        // Sanitize document ID
         const sanitizedId = articleTitle
             .toLowerCase()
-            .replace(/[^a-z0-9]/g, '-')  // Replace special chars with dashes
-            .replace(/-+/g, '-');        // Remove consecutive dashes
+            .replace(/[^a-z0-9]/g, '-')  
+            .replace(/-+/g, '-');      
 
         const docRef = db.collection('articles').doc(sanitizedId);
         
@@ -123,7 +117,7 @@ async function storeArticleInFirebase(articleTitle, content) {
         console.log(`Document ${sanitizedId} stored successfully`);
     } catch (error) {
         console.error('Error storing article:', error);
-        throw error; // Propagate error to client
+        throw error;
     }
 }
 const genAI = new GoogleGenerativeAI(process.env.API_KEY)
